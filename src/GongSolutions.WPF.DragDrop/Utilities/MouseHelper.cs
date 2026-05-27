@@ -9,14 +9,24 @@ namespace GongSolutions.Wpf.DragDrop.Utilities
     {
         private static System.Windows.Threading.DispatcherTimer _timer;
 
-        internal static void HookMouseMove(Action<System.Windows.Point> mouseMoveHandler)
+        internal static void HookMouseMove(IDragSource dragHandler, Action<System.Windows.Point> mouseMoveHandler)
         {
             _timer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Input);
             _timer.Tick += (_, _) =>
                 {
-                    if (TryGetCursorPos(out var lpPoint))
+                    try
                     {
-                        mouseMoveHandler?.Invoke(new System.Windows.Point(lpPoint.x, lpPoint.y));
+                        if (TryGetCursorPos(out var lpPoint))
+                        {
+                            mouseMoveHandler?.Invoke(new System.Windows.Point(lpPoint.x, lpPoint.y));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        if (!dragHandler.TryCatchOccurredException(ex))
+                        {
+                            throw;
+                        }
                     }
                 };
             _timer.Interval = new TimeSpan(1);
