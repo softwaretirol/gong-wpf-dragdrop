@@ -10,6 +10,8 @@ using JetBrains.Annotations;
 
 namespace GongSolutions.Wpf.DragDrop
 {
+    using System.Runtime.InteropServices;
+
     /// <summary>
     /// Holds information about a the target of a drag drop operation.
     /// </summary>
@@ -164,9 +166,22 @@ namespace GongSolutions.Wpf.DragDrop
             this.DragInfo = dragInfo;
             this.KeyStates = e.KeyStates;
             this.EventType = eventType;
-            var dataFormat = dragInfo?.DataFormat;
-            this.Data = dataFormat != null && e.Data.GetDataPresent(dataFormat.Name) ? e.Data.GetData(dataFormat.Name) : e.Data;
-
+            if (e.Data.GetDataPresent(DragDrop.DataFormat.Name))
+            {
+                try
+                {
+                    Data = e.Data.GetData(DragDrop.DataFormat.Name);
+                }
+                catch (COMException)
+                {
+                    Data = dragInfo?.Data;
+                }
+            }
+            else
+            {
+                Data = dragInfo?.Data;
+            }
+            
             this.VisualTarget = sender as UIElement;
             // if there is no drop target, find another
             if (!this.VisualTarget.IsDropTarget())
