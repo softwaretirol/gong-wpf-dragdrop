@@ -37,7 +37,9 @@ namespace GongSolutions.Wpf.DragDrop
         /// <returns></returns>
         private static IDragSource TryGetDragHandler(IDragInfo dragInfo, UIElement sender)
         {
-            var dragHandler = (dragInfo?.VisualSource != null ? GetDragHandler(dragInfo.VisualSource) : null) ?? (sender != null ? GetDragHandler(sender) : null);
+            var visualSource = dragInfo?.VisualSource;
+            var sourceDragHandler = visualSource != null && visualSource.CheckAccess() ? GetDragHandler(visualSource) : null;
+            var dragHandler = sourceDragHandler ?? (sender != null ? GetDragHandler(sender) : null);
 
             return dragHandler ?? DefaultDragHandler;
         }
@@ -233,7 +235,7 @@ namespace GongSolutions.Wpf.DragDrop
         private static DragDropPreview GetDragDropPreview(IDragInfo dragInfo, UIElement visualTarget, UIElement sender)
         {
             var visualSource = dragInfo?.VisualSource;
-            if (visualSource is null)
+            if (visualSource is null || !visualSource.CheckAccess())
             {
                 return null;
             }
@@ -257,15 +259,21 @@ namespace GongSolutions.Wpf.DragDrop
         private static DragDropEffectPreview GetDragDropEffectPreview(IDropInfo dropInfo, UIElement sender)
         {
             var dragInfo = dropInfo.DragInfo;
-            var template = GetDragDropEffectTemplate(dragInfo.VisualSource, dropInfo);
+            var visualSource = dragInfo?.VisualSource;
+            if (visualSource is null || !visualSource.CheckAccess())
+            {
+                return null;
+            }
+
+            var template = GetDragDropEffectTemplate(visualSource, dropInfo);
 
             if (template != null)
             {
-                var rootElement = TryGetRootElementFinder(sender).FindRoot(dropInfo.VisualTarget ?? dragInfo.VisualSource);
+                var rootElement = TryGetRootElementFinder(sender).FindRoot(dropInfo.VisualTarget ?? visualSource);
 
                 var adornment = new ContentPresenter { Content = dragInfo.Data, ContentTemplate = template };
 
-                var preview = new DragDropEffectPreview(rootElement, adornment, GetEffectAdornerTranslation(dragInfo.VisualSource), dropInfo.Effects, dropInfo.EffectText, dropInfo.DestinationText)
+                var preview = new DragDropEffectPreview(rootElement, adornment, GetEffectAdornerTranslation(visualSource), dropInfo.Effects, dropInfo.EffectText, dropInfo.DestinationText)
                               {
                                   IsOpen = true
                               };
@@ -784,7 +792,7 @@ namespace GongSolutions.Wpf.DragDrop
             dropHandler.DragOver(dropInfo);
             DropHintHelpers.DragOver(sender, dropInfo);
 
-            if (dragInfo is not null)
+            if (dragInfo is not null && CanAccess(DragDropPreview))
             {
                 if (DragDropPreview is null)
                 {
@@ -870,7 +878,7 @@ namespace GongSolutions.Wpf.DragDrop
             }
 
             // Set the drag effect adorner if there is one
-            if (dragInfo != null)
+            if (dragInfo != null && CanAccess(DragDropEffectPreview))
             {
                 if (DragDropEffectPreview is null)
                 {
@@ -987,6 +995,11 @@ namespace GongSolutions.Wpf.DragDrop
             }
         }
 
+        private static bool CanAccess(UIElement element)
+        {
+            return element is null || element.CheckAccess();
+        }
+
         private static bool GetHitTestResult(object sender, Point elementPosition)
         {
             return ((sender is TabControl) && !HitTestUtilities.HitTest4Type<TabPanel>(sender, elementPosition))
@@ -1006,7 +1019,19 @@ namespace GongSolutions.Wpf.DragDrop
             get => dragDropPreview;
             set
             {
-                dragDropPreview?.SetCurrentValue(Popup.IsOpenProperty, false);
+                var previous = dragDropPreview;
+                if (previous != null)
+                {
+                    if (previous.CheckAccess())
+                    {
+                        previous.SetCurrentValue(Popup.IsOpenProperty, false);
+                    }
+                    else
+                    {
+                        previous.Dispatcher.BeginInvoke(new Action(() => previous.SetCurrentValue(Popup.IsOpenProperty, false)));
+                    }
+                }
+
                 dragDropPreview = value;
             }
         }
@@ -1018,10 +1043,24 @@ namespace GongSolutions.Wpf.DragDrop
             get => dragDropEffectPreview;
             set
             {
-                if (dragDropEffectPreview is { })
+                var previous = dragDropEffectPreview;
+                if (previous is { })
                 {
-                    dragDropEffectPreview.SetCurrentValue(Popup.PopupAnimationProperty, PopupAnimation.None);
-                    dragDropEffectPreview.SetCurrentValue(Popup.IsOpenProperty, false);
+                    // Close on the preview's own thread (and asynchronously) - it may have been created
+                    // on another UI thread that is currently blocked inside DoDragDrop.
+                    if (previous.CheckAccess())
+                    {
+                        previous.SetCurrentValue(Popup.PopupAnimationProperty, PopupAnimation.None);
+                        previous.SetCurrentValue(Popup.IsOpenProperty, false);
+                    }
+                    else
+                    {
+                        previous.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            previous.SetCurrentValue(Popup.PopupAnimationProperty, PopupAnimation.None);
+                            previous.SetCurrentValue(Popup.IsOpenProperty, false);
+                        }));
+                    }
                 }
 
                 dragDropEffectPreview = value;

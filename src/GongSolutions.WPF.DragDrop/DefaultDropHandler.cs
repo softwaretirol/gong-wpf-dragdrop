@@ -99,8 +99,19 @@ namespace GongSolutions.Wpf.DragDrop
                         ? ItemsControl.ItemsControlFromItemContainer(dropInfo.VisualTargetItem)
                         : itemsControl;
                 itemsParent ??= itemsControl;
+             
+                if (dropInfo.DragInfo.VisualSourceItem is TreeViewItem sourceTreeViewItem)
+                {
+                    if (sourceTreeViewItem.CheckAccess())
+                    {
+                        sourceTreeViewItem.ClearSelectedItems();
+                    }
+                    else
+                    {
+                        sourceTreeViewItem.Dispatcher.BeginInvoke(new Action(() => sourceTreeViewItem.ClearSelectedItems()));
+                    }
+                }
 
-                (dropInfo.DragInfo.VisualSourceItem as TreeViewItem)?.ClearSelectedItems();
                 itemsParent.ClearSelectedItems();
 
                 var selectDroppedItems = dropInfo.VisualTarget is TabControl || (dropInfo.VisualTarget != null && DragDrop.GetSelectDroppedItems(dropInfo.VisualTarget));
@@ -291,19 +302,31 @@ namespace GongSolutions.Wpf.DragDrop
                     isSameCollection = sourceList.IsSameObservableCollection(destinationList);
                     if (!isSameCollection)
                     {
-                        foreach (var o in data)
+                        void RemoveFromSource()
                         {
-                            var index = sourceList.IndexOf(o);
-                            if (index != -1)
+                            foreach (var o in data)
                             {
-                                sourceList.RemoveAt(index);
-
-                                // If source is destination too fix the insertion index
-                                if (destinationList != null && ReferenceEquals(sourceList, destinationList) && index < insertIndex)
+                                var index = sourceList.IndexOf(o);
+                                if (index != -1)
                                 {
-                                    --insertIndex;
+                                    sourceList.RemoveAt(index);
+
+                                    // If source is destination too fix the insertion index
+                                    if (destinationList != null && ReferenceEquals(sourceList, destinationList) && index < insertIndex)
+                                    {
+                                        --insertIndex;
+                                    }
                                 }
                             }
+                        }
+                        var sourceVisual = dropInfo.DragInfo.VisualSource;
+                        if (sourceVisual != null && !sourceVisual.CheckAccess())
+                        {
+                            sourceVisual.Dispatcher.BeginInvoke(new Action(RemoveFromSource));
+                        }
+                        else
+                        {
+                            RemoveFromSource();
                         }
                     }
                 }

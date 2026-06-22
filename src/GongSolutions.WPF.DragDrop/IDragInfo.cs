@@ -120,6 +120,8 @@ namespace GongSolutions.Wpf.DragDrop
         /// </summary>
         DragDropKeyStates DragDropCopyKeyState { get; }
 
+        string DragDropContext { get; }
+
         /// <summary>
         /// Refreshes the <see cref="SourceItems" /> property.
         /// </summary>

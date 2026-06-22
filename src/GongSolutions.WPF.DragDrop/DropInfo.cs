@@ -137,7 +137,8 @@ namespace GongSolutions.Wpf.DragDrop
             get
             {
                 // Check if DragInfo stuff exists
-                if (this.DragInfo?.VisualSource is null)
+                var visualSource = this.DragInfo?.VisualSource;
+                if (visualSource is null)
                 {
                     return true;
                 }
@@ -149,7 +150,7 @@ namespace GongSolutions.Wpf.DragDrop
                 }
 
                 // Source element has a drag context constraint, we need to check the target property matches.
-                var sourceContext = DragDrop.GetDragDropContext(this.DragInfo.VisualSource);
+                var sourceContext = this.DragInfo.DragDropContext;
                 var targetContext = DragDrop.GetDragDropContext(this.VisualTarget);
 
                 return string.Equals(sourceContext, targetContext)
