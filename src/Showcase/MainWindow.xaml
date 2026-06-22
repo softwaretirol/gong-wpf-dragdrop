@@ -35,6 +35,9 @@
             <TabItem Header="Mixed">
                 <views:MixedSamples />
             </TabItem>
+            <TabItem Header="Separate Threads">
+                <views:SeparateThreadSamples />
+            </TabItem>
             <TabItem Header="Fixed #Issues">
                 <views:Issues />
             </TabItem>

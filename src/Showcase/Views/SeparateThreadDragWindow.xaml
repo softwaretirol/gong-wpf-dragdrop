@@ -1,0 +1,23 @@
+<Window x:Class="Showcase.WPF.DragDrop.Views.SeparateThreadDragWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:dd="urn:gong-wpf-dragdrop"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        Width="320"
+        Height="460"
+        mc:Ignorable="d">
+
+    <DockPanel LastChildFill="True" Margin="8">
+        <TextBlock DockPanel.Dock="Top"
+                   Margin="0,0,0,8"
+                   TextWrapping="Wrap"
+                   Text="Reorder within this list works. Dragging into the OTHER window shows the no-drop cursor (cross-thread bug)." />
+
+        <ListBox x:Name="ItemsListBox"
+                 dd:DragDrop.IsDragSource="True"
+                 dd:DragDrop.IsDropTarget="True"
+                 dd:DragDrop.UseDefaultDragAdorner="True"
+                 ItemsSource="{Binding Items}" />
+    </DockPanel>
+</Window>

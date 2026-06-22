@@ -1,0 +1,22 @@
+<UserControl x:Class="Showcase.WPF.DragDrop.Views.SeparateThreadSamples"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             d:DesignHeight="400"
+             d:DesignWidth="600"
+             mc:Ignorable="d">
+
+    <DockPanel LastChildFill="True">
+        <StackPanel DockPanel.Dock="Top" Orientation="Vertical">
+            <TextBlock Style="{StaticResource SampleHeaderTextBlockStyle}"
+                       Text="Drag and drop between windows on separate UI threads (BUG repro)." />
+            <TextBlock Style="{StaticResource DefaultTextBlockStyle}"
+                       Text="Reproduces Drag and Drop with seperate UI thread bug. Each window below is created on its OWN dedicated STA UI thread with its own Dispatcher and its own items collection. Reordering WITHIN a window works. Dragging from one window INTO the other shows the no-drop cursor and the drop fails - a cross-thread drag-drop limitation in gong-wpf-dragdrop (the static drag state holds the source window's thread-affine visuals)." />
+            <Button Margin="2"
+                    Click="ButtonOpenWindowsOnClick"
+                    Content="Open two windows (each on its own UI thread)..." />
+        </StackPanel>
+        <Grid />
+    </DockPanel>
+</UserControl>
